@@ -60,11 +60,12 @@ from transformers import (
     TrainingArguments,
 )
 from sklearn.metrics import accuracy_score, f1_score
+from transformers import pipeline
 
 # --- Hyperparameters ---
 # DistilBERT: distilled version of BERT, 40% smaller, 60% faster, retains ~97% performance.
 # ~66M parameters, fits in 8GB VRAM. "uncased" lowercases everything.
-MODEL_NAME = "distilbert-base-usncased"
+MODEL_NAME = "distilbert-base-uncased"
 OUTPUT_DIR = "./sentiment-model"
 # 3 epochs: one epoch = one full pass through all training examples. BERT paper recommends 2-4
 # for fine-tuning. Too few = underfitting, too many = overfitting (memorizing instead of learning).
@@ -103,24 +104,23 @@ def main():
     # Load the tokenizer that matches our model — same vocabulary and rules used during pre-training.
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
-    '''
-      Tokenization: text -> subword IDs using WordPiece (~30,522 vocabulary).
-      Common words map to one token ("movie" -> [3185]).
-      Rare words are split into subwords ("unhappiness" -> ["un", "##happi", "##ness"]).
-      The ## prefix means "continuation of the previous word, not a standalone token."
-      Without ##, the model couldn't tell "unhappiness" (one word split) from "un happi ness" (three words).
-
-      A sequence is the full list of token IDs for one sentence:
-      "This movie was great" -> [CLS, This, movie, was, great, SEP, PAD, PAD, ..., PAD]
-                                 |_____________ 128 tokens total ___________________|
-
-      - padding="max_length": pad short sequences to 128 tokens (GPUs need fixed-size matrices)
-      - truncation=True: cut sentences longer than 128 tokens
-      - An attention mask (1s/0s) is also generated so the model ignores padding
-
-      A batch is 32 sequences stacked into a (32, 128) matrix.
-      Labels are already integers (0/1), they pass through untouched.
-    '''
+    # Tokenization: text -> subword IDs using WordPiece (~30,522 vocabulary).
+    # Common words map to one token ("movie" -> [3185]).
+    # Rare words are split into subwords ("unhappiness" -> ["un", "##happi", "##ness"]).
+    # The ## prefix means "continuation of the previous word, not a standalone token."
+    # Without ##, the model couldn't tell "unhappiness" (one word split)
+    # from "un happi ness" (three words).
+    #
+    # A sequence is the full list of token IDs for one sentence:
+    # "This movie was great" -> [CLS, This, movie, was, great, SEP, PAD, PAD, ..., PAD]
+    #                            |_____________ 128 tokens total ___________________|
+    #
+    # - padding="max_length": pad short sequences to 128 tokens (GPUs need fixed-size matrices)
+    # - truncation=True: cut sentences longer than 128 tokens
+    # - An attention mask (1s/0s) is also generated so the model ignores padding
+    #
+    # A batch is 32 sequences stacked into a (32, 128) matrix.
+    # Labels are already integers (0/1), they pass through untouched.
     def tokenize(batch):
         return tokenizer(batch["sentence"], padding="max_length", truncation=True, max_length=MAX_LENGTH)
 
@@ -189,6 +189,7 @@ def main():
     #     A sampling strategy picks one (greedy = always top, top-k = random from top k,
     #     temperature = controls randomness). That's why LLMs can give different answers
     #     to the same prompt — they sample from a distribution.
+    #
     print(f"Loading {MODEL_NAME}...")
     model = AutoModelForSequenceClassification.from_pretrained(
         MODEL_NAME,
@@ -280,9 +281,11 @@ def main():
     # Softmax converts logits into probabilities: [-1.8, 0.3] -> [0.11, 0.89]
     # Returns the label with highest probability and its confidence score.
     print("\n--- Inference Demo ---")
-    from transformers import pipeline
-
-    classifier = pipeline("sentiment-analysis", model=OUTPUT_DIR, device=0 if torch.cuda.is_available() else -1)
+    classifier = pipeline(
+        "sentiment-analysis",
+        model=OUTPUT_DIR,
+        device=0 if torch.cuda.is_available() else -1,
+    )
     examples = [
         "This movie was absolutely fantastic!",
         "What a terrible waste of time.",
