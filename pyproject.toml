@@ -1,0 +1,21 @@
+[project]
+name = "fine-tuning-example"
+version = "0.1.0"
+description = "Fine-tune DistilBERT for sentiment analysis using Hugging Face"
+readme = "README.md"
+requires-python = ">=3.13, <3.14"
+dependencies = [
+    "accelerate>=1.13.0",
+    "datasets>=4.8.4",
+    "scikit-learn>=1.8.0",
+    "transformers>=5.3.0",
+    "torch>=2.11.0",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
