@@ -53,10 +53,56 @@ Inference examples:
 'I loved every minute of it!'          -> Positive (0.996)
 ```
 
+## API server
+
+After training, serve the model as a REST API:
+
+```bash
+uv run uvicorn api:app --reload
+```
+
+### Endpoints
+
+**Single prediction:**
+
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"text": "This movie was absolutely fantastic!"}'
+```
+
+```json
+{"text": "This movie was absolutely fantastic!", "label": "Positive", "score": 0.9976}
+```
+
+**Batch prediction:**
+
+```bash
+curl -X POST http://localhost:8000/predict/batch \
+  -H "Content-Type: application/json" \
+  -d '{"texts": ["Terrible film", "I loved it"]}'
+```
+
+```json
+{"predictions": [
+  {"text": "Terrible film", "label": "Negative", "score": 0.9948},
+  {"text": "I loved it", "label": "Positive", "score": 0.9966}
+]}
+```
+
+**Health check:**
+
+```bash
+curl http://localhost:8000/health
+```
+
+Interactive docs are available at http://localhost:8000/docs (Swagger UI).
+
 ## Project structure
 
 ```
 fine_tune_sentiment.py  # Training script (heavily commented)
+api.py                  # FastAPI inference server
 notes.md                # General notes on how fine-tuning works
 pyproject.toml          # uv project config with dependencies
 uv.lock                 # Locked dependency versions
