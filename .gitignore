@@ -2,5 +2,6 @@
 __pycache__/
 *.pyc
 sentiment-model/
+llm/llama-chat-finetuned/
 .claude/
 .idea/
